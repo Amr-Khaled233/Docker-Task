@@ -111,7 +111,7 @@ function HomePage() {
 
       {/* ── Product Carousel — desktop ── */}
       <section className="hidden sm:block py-10 sm:py-14">
-        <div className="container-lux max-w-2xl">
+        <div className="container-lux max-w-5xl">
           <div className="text-center mb-6">
             <p className="eyebrow">{t("home.heroBadge")}</p>
             <h2 className="mt-2 text-3xl sm:text-4xl font-display">

@@ -22,9 +22,16 @@ export function ProductCarousel() {
 
   useEffect(() => {
     Promise.all([
+      api.getCarouselImages().catch(() => [] as string[]),
       api.getProductsMeta().catch(() => ({ imageOverrides: {} as Record<string, string[]>, hidden: [] as string[] })),
       api.getDynamicProducts().catch(() => []),
-    ]).then(([meta, dynProds]) => {
+    ]).then(([carouselImgs, meta, dynProds]) => {
+      // Manager-curated carousel images take priority; otherwise fall back to product images.
+      if (carouselImgs.length > 0) {
+        setSlides(carouselImgs);
+        setIdx(1);
+        return;
+      }
       const imgs: string[] = [];
       for (const p of PRODUCTS) {
         if (meta.hidden.includes(p.slug)) continue;
@@ -145,13 +152,13 @@ export function ProductCarousel() {
           onTransitionEnd={onTransitionEnd}
         >
           {extended.map((src, i) => (
-            <div key={i} className="aspect-square sm:aspect-[4/3]" style={{ width: `${100 / total}%` }}>
+            <div key={i} className="aspect-square sm:aspect-[4/3] bg-white flex items-center justify-center p-4 sm:p-6" style={{ width: `${100 / total}%` }}>
               <img
                 src={src}
                 alt=""
                 draggable={false}
                 loading="eager"
-                className="w-full h-full object-cover pointer-events-none"
+                className="max-w-full max-h-full object-contain pointer-events-none"
               />
             </div>
           ))}
