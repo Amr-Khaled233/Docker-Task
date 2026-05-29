@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { api, type Pricing } from "@/lib/api";
 import { ProductCarousel } from "@/components/site/ProductCarousel";
 import { ReviewsSlider } from "@/components/site/ReviewsSlider";
-import { PriceSkeleton } from "@/components/site/PriceSkeleton";
+import { PriceSkeleton, ImageSkeleton } from "@/components/site/PriceSkeleton";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -23,13 +23,14 @@ function HomePage() {
   const [pricingLoaded, setPricingLoaded] = useState(false);
   const [imageOverrides, setImageOverrides] = useState<Record<string, string[]>>({});
   const [hiddenSlugs, setHiddenSlugs] = useState<string[]>([]);
+  const [metaLoaded, setMetaLoaded] = useState(false);
 
   useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => {
     api.getProductsMeta().then((m) => {
       setImageOverrides(m.imageOverrides ?? {});
       setHiddenSlugs(m.hidden ?? []);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setMetaLoaded(true));
   }, []);
 
   const featuredProducts = PRODUCTS
@@ -174,8 +175,12 @@ function HomePage() {
                   className="lux-card overflow-hidden group block"
                 >
                   <div className="aspect-[4/3] bg-white flex items-center justify-center overflow-hidden relative">
-                    <img src={p.image} alt={p.title} loading="lazy" width={1024} height={768}
-                      className="w-3/5 h-3/5 object-contain transition-transform duration-700 group-hover:scale-110" />
+                    {metaLoaded ? (
+                      <img src={p.image} alt={p.title} loading="lazy" width={1024} height={768}
+                        className="w-3/5 h-3/5 object-contain transition-transform duration-700 group-hover:scale-110" />
+                    ) : (
+                      <ImageSkeleton className="w-full h-full" />
+                    )}
                     {p.badge && (
                       <div className="absolute top-4 start-4 glass-card rounded-full px-3 py-1 text-xs font-medium">
                         {tl(p.badge)}

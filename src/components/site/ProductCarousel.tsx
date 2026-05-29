@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
 import { PRODUCTS } from "@/data/products";
+import { ImageSkeleton } from "@/components/site/PriceSkeleton";
 
 import slide1 from "@/assets/h2o-flosser-1.jpeg";
 import slide2 from "@/assets/electric-brush-1.jpeg";
@@ -11,7 +12,8 @@ import slide5 from "@/assets/ortho-wax-main.jpeg";
 const FALLBACK_SLIDES = [slide1, slide2, slide3, slide4, slide5];
 
 export function ProductCarousel() {
-  const [slides, setSlides] = useState<string[]>(FALLBACK_SLIDES);
+  const [slides, setSlides] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [idx, setIdx] = useState(1);
   const [animated, setAnimated] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -33,8 +35,9 @@ export function ProductCarousel() {
         if (p.outOfStock) continue;
         if (p.images[0]) imgs.push(p.images[0]);
       }
-      if (imgs.length > 0) { setSlides(imgs); setIdx(1); }
-    });
+      setSlides(imgs.length > 0 ? imgs : FALLBACK_SLIDES);
+      setIdx(1);
+    }).finally(() => setLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -108,6 +111,16 @@ export function ProductCarousel() {
     else if (d > 50) goTo(idx - 1);
     startTimer();
   };
+
+  if (!loaded || slides.length === 0) {
+    return (
+      <div className="select-none">
+        <div className="overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl">
+          <ImageSkeleton className="w-full aspect-square sm:aspect-[4/3]" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="select-none">

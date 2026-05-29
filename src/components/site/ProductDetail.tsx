@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useT, type L } from "@/lib/i18n";
 import { formatEGP, PRODUCTS, PRODUCT_DETAILS, type ProductSlug } from "@/data/products";
 import { api, type Pricing, type StaticProductOverride } from "@/lib/api";
-import { PriceSkeleton } from "@/components/site/PriceSkeleton";
+import { PriceSkeleton, ImageSkeleton } from "@/components/site/PriceSkeleton";
 
 export type ProductRelated = {
   slug: string;
@@ -42,6 +42,7 @@ export function ProductDetail(p: ProductDetailProps) {
   const [pricingLoaded, setPricingLoaded] = useState(false);
   const [dbImages, setDbImages] = useState<string[] | null>(null);
   const [textOverride, setTextOverride] = useState<StaticProductOverride | null>(null);
+  const [metaLoaded, setMetaLoaded] = useState(false);
 
   useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => {
@@ -50,7 +51,7 @@ export function ProductDetail(p: ProductDetailProps) {
       if (imgs?.length) { setDbImages(imgs); setActiveImg(imgs[0]); }
       const ov = meta.staticOverrides?.[p.slug];
       if (ov) setTextOverride(ov);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setMetaLoaded(true));
   }, [p.slug]);
 
   // Apply text overrides if set in DB
@@ -88,9 +89,13 @@ export function ProductDetail(p: ProductDetailProps) {
         <div className="container-lux relative grid lg:grid-cols-2 gap-12 items-center">
           <div className="relative">
             <div className="aspect-square rounded-3xl bg-white shadow-[var(--shadow-glow)] flex items-center justify-center overflow-hidden">
-              <img key={activeImg} src={activeImg} alt={p.title} loading="eager" width={1024} height={1024} className="w-4/5 h-4/5 object-contain animate-float" />
+              {metaLoaded ? (
+                <img key={activeImg} src={activeImg} alt={p.title} loading="eager" width={1024} height={1024} className="w-4/5 h-4/5 object-contain animate-float" />
+              ) : (
+                <ImageSkeleton className="w-4/5 h-4/5 rounded-2xl" />
+              )}
             </div>
-            {gallery.length > 1 && (
+            {metaLoaded && gallery.length > 1 && (
               <div className="mt-4 grid grid-cols-4 gap-3">
                 {gallery.map((g, i) => {
                   const active = activeImg === g.src;

@@ -6,7 +6,7 @@ import { Minus, Plus, Tag, Truck, CheckCircle2, Receipt, Sparkles, ShoppingBag, 
 import { PRODUCTS, BUNDLES, SHIPPING_ZONES, formatEGP, computeLineTotal, effectivePrice, type ProductSlug } from "@/data/products";
 import { useT } from "@/lib/i18n";
 import { api, type PublicInventoryStatus, type Pricing, type DynamicProduct, type DynamicBundle, type BundleOverride } from "@/lib/api";
-import { PriceSkeleton } from "@/components/site/PriceSkeleton";
+import { PriceSkeleton, ImageSkeleton } from "@/components/site/PriceSkeleton";
 
 export const Route = createFileRoute("/order")({
   component: OrderPage,
@@ -69,6 +69,7 @@ function OrderPage() {
   useEffect(() => { api.getDynamicProducts().then(setDynamicProducts).catch(() => {}); }, []);
   useEffect(() => { api.getDynamicBundles().then(setUserCreatedBundles).catch(() => {}); }, []);
   const [staticImageOverrides, setStaticImageOverrides] = useState<Record<string, string[]>>({});
+  const [metaLoaded, setMetaLoaded] = useState(false);
   useEffect(() => {
     api.getProductsMeta().then((m) => {
       setBundleOverrides(m.bundleOverrides);
@@ -78,7 +79,7 @@ function OrderPage() {
         if (ov.colors?.length) colorOvs[slug] = ov.colors;
       }
       setStaticColorOverrides(colorOvs);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setMetaLoaded(true));
   }, []);
 
   // Merge static product data with live inventory status, pricing overrides, and color overrides
@@ -589,7 +590,11 @@ function OrderPage() {
                         <div className="mt-3 flex gap-2">
                           {items.map((i) => (
                             <div key={i.slug} className={`h-12 w-12 rounded-xl bg-soft border border-border flex items-center justify-center overflow-hidden ${i.outOfStock ? "grayscale" : ""}`}>
-                              <img src={i.image} alt={i.title} loading="lazy" width={96} height={96} className="w-3/4 h-3/4 object-contain" />
+                              {metaLoaded ? (
+                                <img src={i.image} alt={i.title} loading="lazy" width={96} height={96} className="w-3/4 h-3/4 object-contain" />
+                              ) : (
+                                <ImageSkeleton className="w-full h-full" />
+                              )}
                             </div>
                           ))}
                         </div>
@@ -727,7 +732,11 @@ function OrderPage() {
                       {/* Top row: image + name + tagline + price */}
                       <div className="flex items-start gap-3">
                         <div className="h-16 w-16 rounded-xl bg-soft border border-border flex items-center justify-center overflow-hidden shrink-0">
-                          <img src={p.image} alt={p.title} loading="lazy" width={128} height={128} className={`w-full h-full object-cover ${oos ? "grayscale" : ""}`} />
+                          {metaLoaded ? (
+                            <img src={p.image} alt={p.title} loading="lazy" width={128} height={128} className={`w-full h-full object-cover ${oos ? "grayscale" : ""}`} />
+                          ) : (
+                            <ImageSkeleton className="w-full h-full" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">

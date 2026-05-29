@@ -5,7 +5,7 @@ import { PRODUCTS, BUNDLES, formatEGP, effectivePrice } from "@/data/products";
 import { useT } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 import { api, type Pricing, type DynamicProduct, type DynamicBundle } from "@/lib/api";
-import { PriceSkeleton } from "@/components/site/PriceSkeleton";
+import { PriceSkeleton, ImageSkeleton } from "@/components/site/PriceSkeleton";
 
 export const Route = createFileRoute("/products/")({
   component: ProductsPage,
@@ -18,6 +18,7 @@ function ProductsPage() {
   const [dynamicProducts, setDynamicProducts] = useState<DynamicProduct[]>([]);
   const [hiddenSlugs, setHiddenSlugs] = useState<string[]>([]);
   const [imageOverrides, setImageOverrides] = useState<Record<string, string[]>>({});
+  const [metaLoaded, setMetaLoaded] = useState(false);
   const [userBundles, setUserBundles] = useState<DynamicBundle[]>([]);
   useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => { api.getDynamicProducts().then(setDynamicProducts).catch(() => {}); }, []);
@@ -25,7 +26,7 @@ function ProductsPage() {
     api.getProductsMeta().then((m) => {
       setHiddenSlugs(m.hidden);
       setImageOverrides(m.imageOverrides ?? {});
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setMetaLoaded(true));
   }, []);
   useEffect(() => { api.getDynamicBundles().then(setUserBundles).catch(() => {}); }, []);
 
@@ -69,7 +70,11 @@ function ProductsPage() {
                 className="lux-card overflow-hidden group block"
               >
                 <div className="aspect-[4/3] bg-white flex items-center justify-center overflow-hidden relative">
-                  <img src={p.image} alt={p.title} loading="lazy" width={1024} height={768} className="w-3/5 h-3/5 object-contain transition-transform duration-700 group-hover:scale-110" />
+                  {metaLoaded ? (
+                    <img src={p.image} alt={p.title} loading="lazy" width={1024} height={768} className="w-3/5 h-3/5 object-contain transition-transform duration-700 group-hover:scale-110" />
+                  ) : (
+                    <ImageSkeleton className="w-full h-full" />
+                  )}
                   {p.badge && <div className="absolute top-4 start-4 glass-card rounded-full px-3 py-1 text-xs font-medium">{tl(p.badge)}</div>}
                 </div>
                 <div className="p-7">
@@ -164,7 +169,11 @@ function ProductsPage() {
                   <div className="mt-5 flex items-center gap-3">
                     {items.map((i) => (
                       <div key={i.slug} className="h-16 w-16 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden">
-                        <img src={i.image} alt={i.title} loading="lazy" width={128} height={128} className="w-3/4 h-3/4 object-contain" />
+                        {metaLoaded ? (
+                          <img src={i.image} alt={i.title} loading="lazy" width={128} height={128} className="w-3/4 h-3/4 object-contain" />
+                        ) : (
+                          <ImageSkeleton className="w-full h-full" />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -214,7 +223,9 @@ function ProductsPage() {
                   <div className="mt-5 flex items-center gap-3 flex-wrap">
                     {items.map((i) => (
                       <div key={i.slug} className="h-16 w-16 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden">
-                        {i.image ? (
+                        {!metaLoaded ? (
+                          <ImageSkeleton className="w-full h-full" />
+                        ) : i.image ? (
                           <img src={i.image} alt={i.title} loading="lazy" className="w-3/4 h-3/4 object-contain" />
                         ) : (
                           <span className="text-[10px] text-muted-foreground text-center px-1">{i.title}</span>
