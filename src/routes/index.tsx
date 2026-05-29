@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { api, type Pricing } from "@/lib/api";
 import { ProductCarousel } from "@/components/site/ProductCarousel";
 import { ReviewsSlider } from "@/components/site/ReviewsSlider";
+import { PriceSkeleton } from "@/components/site/PriceSkeleton";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -19,10 +20,11 @@ const FEATURED_SLUGS = ["h2o-water-flosser", "ortho-oral-kit"];
 function HomePage() {
   const { t, tl, lang } = useT();
   const [pricing, setPricing] = useState<Pricing>({ products: [], bundles: [], promoCodes: [] });
+  const [pricingLoaded, setPricingLoaded] = useState(false);
   const [imageOverrides, setImageOverrides] = useState<Record<string, string[]>>({});
   const [hiddenSlugs, setHiddenSlugs] = useState<string[]>([]);
 
-  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}); }, []);
+  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => {
     api.getProductsMeta().then((m) => {
       setImageOverrides(m.imageOverrides ?? {});
@@ -184,8 +186,14 @@ function HomePage() {
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="text-xl font-display" dir="ltr">{p.title}</h3>
                       <div className="flex items-end gap-2 whitespace-nowrap">
-                        <span className="text-xl price-tag text-gradient">{formatEGP(price, lang)}</span>
-                        {onSale && <span className="text-xs text-muted-foreground line-through">{formatEGP(p.price, lang)}</span>}
+                        {pricingLoaded ? (
+                          <>
+                            <span className="text-xl price-tag text-gradient">{formatEGP(price, lang)}</span>
+                            {onSale && <span className="text-xs text-muted-foreground line-through">{formatEGP(p.price, lang)}</span>}
+                          </>
+                        ) : (
+                          <PriceSkeleton className="h-6 w-24" />
+                        )}
                       </div>
                     </div>
                     <p className="mt-2 text-muted-foreground text-sm line-clamp-2">{tl(p.tagline)}</p>

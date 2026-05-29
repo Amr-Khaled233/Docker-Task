@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useT, type L } from "@/lib/i18n";
 import { formatEGP, PRODUCTS, PRODUCT_DETAILS, type ProductSlug } from "@/data/products";
 import { api, type Pricing, type StaticProductOverride } from "@/lib/api";
+import { PriceSkeleton } from "@/components/site/PriceSkeleton";
 
 export type ProductRelated = {
   slug: string;
@@ -38,10 +39,11 @@ export function ProductDetail(p: ProductDetailProps) {
   const { t, tl, lang } = useT();
   const [activeImg, setActiveImg] = useState(p.image);
   const [pricing, setPricing] = useState<Pricing>({ products: [], bundles: [], promoCodes: [] });
+  const [pricingLoaded, setPricingLoaded] = useState(false);
   const [dbImages, setDbImages] = useState<string[] | null>(null);
   const [textOverride, setTextOverride] = useState<StaticProductOverride | null>(null);
 
-  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}); }, []);
+  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => {
     api.getProductsMeta().then((meta) => {
       const imgs = meta.imageOverrides[p.slug];
@@ -124,9 +126,15 @@ export function ProductDetail(p: ProductDetailProps) {
             </div>
 
             <div className="mt-6 flex items-end gap-3 flex-wrap">
-              <span className="text-5xl price-tag text-gradient">{formatEGP(displaySalePrice ?? displayPrice, lang)}</span>
-              {displaySalePrice != null && (
-                <span className="pb-2 text-muted-foreground text-xl line-through">{formatEGP(displayPrice, lang)}</span>
+              {pricingLoaded ? (
+                <>
+                  <span className="text-5xl price-tag text-gradient">{formatEGP(displaySalePrice ?? displayPrice, lang)}</span>
+                  {displaySalePrice != null && (
+                    <span className="pb-2 text-muted-foreground text-xl line-through">{formatEGP(displayPrice, lang)}</span>
+                  )}
+                </>
+              ) : (
+                <PriceSkeleton className="h-12 w-40" />
               )}
               <span className="pb-2 text-muted-foreground text-sm">· {t("order.shippingAtCheckout")}</span>
             </div>
@@ -220,9 +228,13 @@ export function ProductDetail(p: ProductDetailProps) {
                 <div className="p-6 flex items-center justify-between">
                   <div>
                     <h4 className="font-display text-xl" dir="ltr">{r.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {t("products.from")} {formatEGP(r.salePrice ?? r.price, lang)}
-                    </p>
+                    {pricingLoaded ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t("products.from")} {formatEGP(r.salePrice ?? r.price, lang)}
+                      </p>
+                    ) : (
+                      <PriceSkeleton className="mt-1 h-4 w-24" />
+                    )}
                   </div>
                   <span className="text-deep-blue text-sm">{t("btn.view")} →</span>
                 </div>

@@ -5,6 +5,7 @@ import { PRODUCTS, BUNDLES, formatEGP, effectivePrice } from "@/data/products";
 import { useT } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 import { api, type Pricing, type DynamicProduct, type DynamicBundle } from "@/lib/api";
+import { PriceSkeleton } from "@/components/site/PriceSkeleton";
 
 export const Route = createFileRoute("/products/")({
   component: ProductsPage,
@@ -13,11 +14,12 @@ export const Route = createFileRoute("/products/")({
 function ProductsPage() {
   const { t, tl, lang } = useT();
   const [pricing, setPricing] = useState<Pricing>({ products: [], bundles: [], promoCodes: [] });
+  const [pricingLoaded, setPricingLoaded] = useState(false);
   const [dynamicProducts, setDynamicProducts] = useState<DynamicProduct[]>([]);
   const [hiddenSlugs, setHiddenSlugs] = useState<string[]>([]);
   const [imageOverrides, setImageOverrides] = useState<Record<string, string[]>>({});
   const [userBundles, setUserBundles] = useState<DynamicBundle[]>([]);
-  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}); }, []);
+  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => { api.getDynamicProducts().then(setDynamicProducts).catch(() => {}); }, []);
   useEffect(() => {
     api.getProductsMeta().then((m) => {
@@ -74,8 +76,14 @@ function ProductsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-xl font-display" dir="ltr">{p.title}</h3>
                     <div className="flex items-end gap-2 whitespace-nowrap">
-                      <span className="text-xl price-tag text-gradient">{formatEGP(price, lang)}</span>
-                      {onSale && <span className="text-xs text-muted-foreground line-through">{formatEGP(p.price, lang)}</span>}
+                      {pricingLoaded ? (
+                        <>
+                          <span className="text-xl price-tag text-gradient">{formatEGP(price, lang)}</span>
+                          {onSale && <span className="text-xs text-muted-foreground line-through">{formatEGP(p.price, lang)}</span>}
+                        </>
+                      ) : (
+                        <PriceSkeleton className="h-6 w-24" />
+                      )}
                     </div>
                   </div>
                   <p className="mt-2 text-muted-foreground text-sm line-clamp-2">{tl(p.tagline)}</p>
@@ -162,15 +170,24 @@ function ProductsPage() {
                   </div>
 
                   <div className="mt-5 space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      <span className="line-through">{formatEGP(total, lang)}</span>
-                      {savingsPct > 0 && (
-                        <span className="ms-2 text-xs font-medium text-deep-blue bg-deep-blue/10 rounded-full px-2 py-0.5">
-                          −{savingsPct}%
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-2xl price-tag text-gradient">{formatEGP(discounted, lang)}</p>
+                    {pricingLoaded ? (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          <span className="line-through">{formatEGP(total, lang)}</span>
+                          {savingsPct > 0 && (
+                            <span className="ms-2 text-xs font-medium text-deep-blue bg-deep-blue/10 rounded-full px-2 py-0.5">
+                              −{savingsPct}%
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-2xl price-tag text-gradient">{formatEGP(discounted, lang)}</p>
+                      </>
+                    ) : (
+                      <>
+                        <PriceSkeleton className="h-4 w-16" />
+                        <PriceSkeleton className="h-7 w-28" />
+                      </>
+                    )}
                   </div>
 
                   <Link to="/order" className="btn-primary mt-6 text-sm w-fit">
@@ -207,15 +224,24 @@ function ProductsPage() {
                   </div>
 
                   <div className="mt-5 space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      <span className="line-through">{formatEGP(total, lang)}</span>
-                      {savingsPct > 0 && (
-                        <span className="ms-2 text-xs font-medium text-deep-blue bg-deep-blue/10 rounded-full px-2 py-0.5">
-                          −{savingsPct}%
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-2xl price-tag text-gradient">{formatEGP(discounted, lang)}</p>
+                    {pricingLoaded ? (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          <span className="line-through">{formatEGP(total, lang)}</span>
+                          {savingsPct > 0 && (
+                            <span className="ms-2 text-xs font-medium text-deep-blue bg-deep-blue/10 rounded-full px-2 py-0.5">
+                              −{savingsPct}%
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-2xl price-tag text-gradient">{formatEGP(discounted, lang)}</p>
+                      </>
+                    ) : (
+                      <>
+                        <PriceSkeleton className="h-4 w-16" />
+                        <PriceSkeleton className="h-7 w-28" />
+                      </>
+                    )}
                   </div>
 
                   <Link to="/order" className="btn-primary mt-6 text-sm w-fit">

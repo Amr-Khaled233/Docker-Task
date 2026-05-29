@@ -6,6 +6,7 @@ import { Minus, Plus, Tag, Truck, CheckCircle2, Receipt, Sparkles, ShoppingBag, 
 import { PRODUCTS, BUNDLES, SHIPPING_ZONES, formatEGP, computeLineTotal, effectivePrice, type ProductSlug } from "@/data/products";
 import { useT } from "@/lib/i18n";
 import { api, type PublicInventoryStatus, type Pricing, type DynamicProduct, type DynamicBundle, type BundleOverride } from "@/lib/api";
+import { PriceSkeleton } from "@/components/site/PriceSkeleton";
 
 export const Route = createFileRoute("/order")({
   component: OrderPage,
@@ -51,6 +52,7 @@ function OrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [inventoryStatus, setInventoryStatus] = useState<PublicInventoryStatus>({ outOfStock: [], outOfStockColors: {}, colorQty: {} });
   const [pricing, setPricing] = useState<Pricing>({ products: [], bundles: [], promoCodes: [] });
+  const [pricingLoaded, setPricingLoaded] = useState(false);
   const [freeShippingActive, setFreeShippingActive] = useState(false);
   const [bundleQty, setBundleQty] = useState<Record<string, number>>({});
   const [bundleColorSelections, setBundleColorSelections] = useState<Record<string, Record<string, string>[]>>({});
@@ -62,7 +64,7 @@ function OrderPage() {
   const [staticColorOverrides, setStaticColorOverrides] = useState<Record<string, { id: string; label: { en: string; ar: string }; hex: string }[]>>({});
 
   useEffect(() => { api.getInventoryStatus().then(setInventoryStatus).catch(() => {}); }, []);
-  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}); }, []);
+  useEffect(() => { api.getPricingPublic().then(setPricing).catch(() => {}).finally(() => setPricingLoaded(true)); }, []);
   useEffect(() => { api.getFreeShippingStatus().then((r) => setFreeShippingActive(r.active)).catch(() => {}); }, []);
   useEffect(() => { api.getDynamicProducts().then(setDynamicProducts).catch(() => {}); }, []);
   useEffect(() => { api.getDynamicBundles().then(setUserCreatedBundles).catch(() => {}); }, []);
@@ -593,11 +595,20 @@ function OrderPage() {
                         </div>
                         <div className="mt-3 flex items-center justify-between gap-2">
                           <div className="space-y-0.5">
-                            <p className="text-xs text-muted-foreground">
-                              <span className="line-through">{formatEGP(total, lang)}</span>
-                              {savingsPct > 0 && !bundleOos && <span className="ms-1.5 text-xs font-medium text-deep-blue bg-deep-blue/10 rounded-full px-2 py-0.5">−{savingsPct}%</span>}
-                            </p>
-                            <span className={`price-tag text-lg ${bundleOos ? "text-muted-foreground" : "text-gradient"}`}>{formatEGP(discounted, lang)}</span>
+                            {pricingLoaded ? (
+                              <>
+                                <p className="text-xs text-muted-foreground">
+                                  <span className="line-through">{formatEGP(total, lang)}</span>
+                                  {savingsPct > 0 && !bundleOos && <span className="ms-1.5 text-xs font-medium text-deep-blue bg-deep-blue/10 rounded-full px-2 py-0.5">−{savingsPct}%</span>}
+                                </p>
+                                <span className={`price-tag text-lg ${bundleOos ? "text-muted-foreground" : "text-gradient"}`}>{formatEGP(discounted, lang)}</span>
+                              </>
+                            ) : (
+                              <>
+                                <PriceSkeleton className="h-3.5 w-12" />
+                                <PriceSkeleton className="h-5 w-20" />
+                              </>
+                            )}
                           </div>
                           {!bundleOos && (
                             <div className="flex items-center gap-1 rounded-full border-2 border-border bg-white p-0.5 shrink-0">
@@ -726,8 +737,14 @@ function OrderPage() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tl(p.tagline)}</p>
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
-                            <span className="text-sm price-tag text-gradient">{formatEGP(price, lang)}</span>
-                            {onSale && <span className="text-[11px] text-muted-foreground line-through font-sans">{formatEGP(p.price, lang)}</span>}
+                            {pricingLoaded ? (
+                              <>
+                                <span className="text-sm price-tag text-gradient">{formatEGP(price, lang)}</span>
+                                {onSale && <span className="text-[11px] text-muted-foreground line-through font-sans">{formatEGP(p.price, lang)}</span>}
+                              </>
+                            ) : (
+                              <PriceSkeleton className="h-4 w-20" />
+                            )}
                           </div>
                           {/* Bundle contribution badges */}
                           {bundleContribs.length > 0 && (
@@ -1049,7 +1066,9 @@ function OrderPage() {
               >
                 {submitting
                   ? lang === "ar" ? "جاري الإرسال..." : "Sending..."
-                  : `${t("order.placeOrder")} — ${formatEGP(total, lang)}`}
+                  : pricingLoaded
+                    ? `${t("order.placeOrder")} — ${formatEGP(total, lang)}`
+                    : t("order.placeOrder")}
               </button>
             </form>
           </div>
@@ -1067,7 +1086,9 @@ function OrderPage() {
                       <span className="text-ink min-w-0 truncate">
                         <span dir="ltr">{l.title}</span> <span className="text-muted-foreground">× {l.qty}</span>
                       </span>
-                      <span className="font-medium text-ink whitespace-nowrap">{formatEGP(l.lineTotal, lang)}</span>
+                      {pricingLoaded
+                        ? <span className="font-medium text-ink whitespace-nowrap">{formatEGP(l.lineTotal, lang)}</span>
+                        : <PriceSkeleton className="h-4 w-16" />}
                     </li>
                   ))}
                 </ul>
@@ -1108,7 +1129,7 @@ function OrderPage() {
               </div>
 
               <div className="space-y-2 text-sm">
-                <Row label={t("order.subtotal")} value={formatEGP(subtotal, lang)} />
+                <Row label={t("order.subtotal")} value={pricingLoaded ? formatEGP(subtotal, lang) : <PriceSkeleton className="h-4 w-16" />} />
                 {bundleDiscount > 0 && <Row label={t("order.bundleDiscount")} value={`− ${formatEGP(bundleDiscount, lang)}`} accent />}
                 {promoDiscount > 0 && <Row label={`${t("order.promo")} ${appliedPromo?.code}`} value={`− ${formatEGP(promoDiscount, lang)}`} accent />}
                 <Row
@@ -1121,7 +1142,9 @@ function OrderPage() {
                 />
                 <div className="border-t border-border pt-3 mt-3 flex items-center justify-between">
                   <span className="font-display text-lg">{t("order.total")}</span>
-                  <span className="price-tag text-2xl text-gradient">{formatEGP(total, lang)}</span>
+                  {pricingLoaded
+                    ? <span className="price-tag text-2xl text-gradient">{formatEGP(total, lang)}</span>
+                    : <PriceSkeleton className="h-7 w-24" />}
                 </div>
               </div>
             </div>

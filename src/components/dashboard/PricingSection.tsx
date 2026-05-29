@@ -160,6 +160,29 @@ export function PricingSection({ token }: { token: string }) {
     setFsSaving(false);
   };
 
+  // Effective price for a product slug, preferring the manager's edited
+  // (draft) prices so bundle totals update live and reflect saved overrides.
+  const effPriceForSlug = (slug: string): number => {
+    const fromDraft = (d?: { price: string; salePrice: string }) => {
+      if (!d) return null;
+      if (d.salePrice.trim()) {
+        const sale = Number(d.salePrice);
+        if (!isNaN(sale)) return sale;
+      }
+      const base = Number(d.price);
+      return isNaN(base) ? null : base;
+    };
+    const sd = fromDraft(productDrafts[slug]);
+    if (sd != null) return sd;
+    const dd = fromDraft(dynProductDrafts[slug]);
+    if (dd != null) return dd;
+    const p = PRODUCTS.find((x) => x.slug === slug);
+    if (p) return effectivePrice(p);
+    const dp = dynProds.find((x) => x.slug === slug);
+    if (dp) return dp.salePrice ?? dp.price;
+    return 0;
+  };
+
   if (!loaded) {
     return <div className="text-center py-10 text-muted-foreground text-sm">جاري التحميل...</div>;
   }
@@ -285,10 +308,7 @@ export function PricingSection({ token }: { token: string }) {
         <div className="space-y-3">
           {/* Static/original bundles */}
           {BUNDLES.map((b) => {
-            const itemsSum = b.items.reduce((s, slug) => {
-              const p = PRODUCTS.find((x) => x.slug === slug)!;
-              return s + effectivePrice(p);
-            }, 0);
+            const itemsSum = b.items.reduce((s, slug) => s + effPriceForSlug(slug), 0);
             const defaultPrice = Math.round(itemsSum * (1 - b.discountPct / 100));
             const inputVal = bundleDrafts[b.id];
             const currentPrice = inputVal !== "" ? Number(inputVal) : NaN;
@@ -322,13 +342,7 @@ export function PricingSection({ token }: { token: string }) {
           })}
           {/* User-created bundles — same style */}
           {userBundles.map((b) => {
-            const itemsSum = b.items.reduce((s, slug) => {
-              const sp = PRODUCTS.find((x) => x.slug === slug);
-              if (sp) return s + effectivePrice(sp);
-              const dp = dynProds.find((x) => x.slug === slug);
-              if (dp) return s + (dp.salePrice ?? dp.price);
-              return s;
-            }, 0);
+            const itemsSum = b.items.reduce((s, slug) => s + effPriceForSlug(slug), 0);
             const inputVal = userBundleDrafts[b.id] ?? "";
             const currentPrice = inputVal !== "" ? Number(inputVal) : NaN;
             const savings = !isNaN(currentPrice) ? Math.max(0, itemsSum - currentPrice) : 0;
