@@ -507,7 +507,7 @@ function OrderPage() {
                   <Row label={`${t("order.shipping")} — ${confirmed.shippingZone}`} value={formatEGP(confirmed.shippingFee, lang)} />
                   <div className="border-t border-border pt-3 mt-3 flex items-center justify-between">
                     <span className="font-display text-lg">{t("order.total")}</span>
-                    <span className="font-display text-2xl text-gradient">{formatEGP(confirmed.total, lang)}</span>
+                    <span className="price-tag text-2xl text-gradient">{formatEGP(confirmed.total, lang)}</span>
                   </div>
                 </div>
               </div>
