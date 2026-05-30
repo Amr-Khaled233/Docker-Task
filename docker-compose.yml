@@ -22,8 +22,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    # Team members can `docker compose pull` this without building.
-    image: ghcr.io/amr-khaled233/smilemaker-backend:latest
+    # Published to Docker Hub (primary) and mirrored on GHCR. Team members
+    # can `docker compose pull` this without building locally.
+    #   Mirror: ghcr.io/amr-khaled233/smilemaker-backend:latest
+    image: amrkhaled233/smilemaker-backend:latest
     container_name: smilemaker-backend
     restart: unless-stopped
     depends_on:
@@ -50,7 +52,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    image: ghcr.io/amr-khaled233/smilemaker-frontend:latest
+    #   Mirror: ghcr.io/amr-khaled233/smilemaker-frontend:latest
+    image: amrkhaled233/smilemaker-frontend:latest
     container_name: smilemaker-frontend
     restart: unless-stopped
     depends_on:
