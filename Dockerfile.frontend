@@ -17,6 +17,9 @@ RUN npm run build
 
 # ─── Stage 2: serve with nginx ─────────────────────────────────────
 FROM nginx:alpine AS runtime
+LABEL org.opencontainers.image.source="https://github.com/Amr-Khaled233/Docker-Task"
+LABEL org.opencontainers.image.title="smilemaker-frontend"
+LABEL org.opencontainers.image.description="SmileMaker Vite/React frontend served by nginx"
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

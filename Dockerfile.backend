@@ -8,6 +8,9 @@ RUN npm ci --no-audit --no-fund
 
 # ─── Stage 2: runtime ──────────────────────────────────────────────
 FROM node:20-alpine AS runtime
+LABEL org.opencontainers.image.source="https://github.com/Amr-Khaled233/Docker-Task"
+LABEL org.opencontainers.image.title="smilemaker-backend"
+LABEL org.opencontainers.image.description="SmileMaker Express API (Node 20)"
 WORKDIR /app
 
 # Bring in cached deps and app sources, all owned by the unprivileged

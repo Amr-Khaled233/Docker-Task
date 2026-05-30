@@ -10,7 +10,7 @@ services:
     ports:
       - "27017:27017"
     networks:
-      - smilemaker
+      - db
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
       interval: 30s
@@ -22,7 +22,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    image: smilemaker-backend:latest
+    # Team members can `docker compose pull` this without building.
+    image: ghcr.io/amr-khaled233/smilemaker-backend:latest
     container_name: smilemaker-backend
     restart: unless-stopped
     depends_on:
@@ -39,14 +40,17 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
     ports:
       - "3001:3001"
+    # Backend bridges both networks: it talks to the DB on `db` and is
+    # reached by the frontend on `web`.
     networks:
-      - smilemaker
+      - web
+      - db
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    image: smilemaker-frontend:latest
+    image: ghcr.io/amr-khaled233/smilemaker-frontend:latest
     container_name: smilemaker-frontend
     restart: unless-stopped
     depends_on:
@@ -54,13 +58,17 @@ services:
         condition: service_healthy
     ports:
       - "8080:80"
+    # Frontend only joins `web` — it has no route to the DB network.
     networks:
-      - smilemaker
+      - web
 
 volumes:
   mongo-data:
 
 networks:
-  smilemaker:
-    name: smilemaker-net
+  web:
+    name: smilemaker-web
+    driver: bridge
+  db:
+    name: smilemaker-db
     driver: bridge
