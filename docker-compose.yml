@@ -1,19 +1,33 @@
+name: smilemaker
+
 services:
   mongo:
     image: mongo:7
+    container_name: smilemaker-mongo
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
     ports:
       - "27017:27017"
+    networks:
+      - smilemaker
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    image: smilemaker-backend:latest
+    container_name: smilemaker-backend
     restart: unless-stopped
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     environment:
       PORT: 3001
       MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017}
@@ -25,16 +39,28 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
     ports:
       - "3001:3001"
+    networks:
+      - smilemaker
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    image: smilemaker-frontend:latest
+    container_name: smilemaker-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "8080:80"
+    networks:
+      - smilemaker
 
 volumes:
   mongo-data:
+
+networks:
+  smilemaker:
+    name: smilemaker-net
+    driver: bridge

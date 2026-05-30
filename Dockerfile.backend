@@ -1,18 +1,29 @@
-# ─── Backend: Express API run with tsx ────────────────────────────
-FROM node:20-alpine
+# syntax=docker/dockerfile:1.7
 
+# ─── Stage 1: install dependencies (cached separately from sources) ─
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+# ─── Stage 2: runtime ──────────────────────────────────────────────
+FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Install dependencies (tsx is a devDependency, so install all)
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Copy backend source
-COPY tsconfig.json ./
-COPY server ./server
+# Bring in cached deps and app sources, all owned by the unprivileged
+# `node` user shipped with the base image so we can drop root below.
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node package.json package-lock.json tsconfig.json ./
+COPY --chown=node:node server ./server
 
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
+
+USER node
+
+# Self-check via the public /api/products endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/api/products', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 CMD ["npm", "run", "start"]
